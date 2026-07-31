@@ -1,0 +1,9 @@
+{
+  "name": "@mediassist/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node ./scripts/dev.mjs",
+    "install:deps": "node ./scripts/install-deps.mjs"
+  }
+}

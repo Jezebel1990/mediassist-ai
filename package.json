@@ -1,0 +1,17 @@
+{
+  "name": "mediassist-ai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MediAssist AI — plataforma de consulta a documentos internos com RAG",
+  "scripts": {
+    "dev:web": "pnpm --filter @mediassist/web dev",
+    "dev:api": "pnpm --filter @mediassist/api dev",
+    "install:all": "pnpm install && pnpm --filter @mediassist/api install:deps",
+    "lint": "pnpm --filter @mediassist/web lint"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@9.11.0"
+}
