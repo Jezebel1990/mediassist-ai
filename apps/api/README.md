@@ -8,21 +8,27 @@ Backend FastAPI do monorepo MediAssist AI.
 - FastAPI
 - Uvicorn
 - Pydantic Settings
+- SQLAlchemy
+- LangChain + FAISS (infraestrutura de Base de Conhecimento)
 
 ## Estrutura
 
 ```text
 apps/api
 ├── app/
-│   ├── api/          # Rotas HTTP
-│   ├── core/         # Configuração e infraestrutura
-│   ├── services/     # Casos de uso / regras de negócio
-│   ├── models/       # Modelos de domínio / persistência
-│   ├── schemas/      # Contratos de entrada e saída
-│   ├── utils/        # Utilitários compartilhados
-│   └── main.py       # Entry point da aplicação
-├── knowledge_base/   # Documentos para futuras implementações de RAG
-├── scripts/          # Scripts de desenvolvimento do monorepo
+│   ├── api/                 # Agregação de routers HTTP
+│   ├── core/                # Configuração e infraestrutura
+│   ├── database/            # Sessão e base SQLAlchemy
+│   ├── models/              # Entidades de persistência
+│   ├── modules/
+│   │   └── documents/       # Upload, loaders, chunks e FAISS
+│   ├── repositories/
+│   ├── schemas/
+│   ├── services/
+│   └── main.py
+├── storage/
+│   ├── documents/           # Arquivos enviados
+│   └── faiss/               # Índice FAISS persistido
 ├── requirements.txt
 └── .env.example
 ```
@@ -53,8 +59,17 @@ pnpm dev:api
 
 A API sobe em `http://localhost:8000`.
 
-Health check:
+## Endpoints principais
 
-```bash
-GET /health
-```
+| Método | Path | Descrição |
+|--------|------|-----------|
+| GET | `/health` | Health check |
+| POST | `/api/auth/register` | Cadastro |
+| POST | `/api/auth/login` | Login |
+| POST | `/api/documents/upload` | Upload múltiplo |
+| POST | `/api/documents/process` | Processar e indexar (atualiza FAISS) |
+| POST | `/api/documents/reindex` | Recriar índice FAISS explicitamente |
+| GET | `/api/documents` | Listar documentos |
+| GET | `/api/documents/status` | Contadores e estado do índice |
+
+Chat / LLM ainda não estão implementados.

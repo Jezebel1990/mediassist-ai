@@ -28,6 +28,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db() -> None:
     """Create all tables. Import models so they register on Base.metadata."""
+    from app.models import document as _document  # noqa: F401
     from app.models import user as _user  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
