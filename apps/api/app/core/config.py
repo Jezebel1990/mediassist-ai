@@ -21,6 +21,10 @@ class Settings(BaseSettings):
         default="http://localhost:3000",
         alias="CORS_ORIGINS",
     )
+    database_url: str = Field(
+        default="sqlite:///./data/mediassist.db",
+        alias="DATABASE_URL",
+    )
 
     @property
     def cors_origins(self) -> list[str]:
