@@ -31,6 +31,9 @@ export function getStoredUser(): AuthUser | null {
   try {
     const raw = window.localStorage.getItem(AUTH_USER_KEY);
     if (!raw) {
+      if (typeof document !== "undefined") {
+        document.cookie = `${AUTH_USER_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; SameSite=Lax`;
+      }
       return null;
     }
 
@@ -41,6 +44,10 @@ export function getStoredUser(): AuthUser | null {
       typeof parsed.email !== "string"
     ) {
       return null;
+    }
+
+    if (typeof document !== "undefined" && !document.cookie.includes(`${AUTH_USER_KEY}=`)) {
+      document.cookie = `${AUTH_USER_KEY}=true; path=/; max-age=86400; SameSite=Lax`;
     }
 
     return {
@@ -60,6 +67,7 @@ export function setStoredUser(user: AuthUser): void {
     return;
   }
   window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+  document.cookie = `${AUTH_USER_KEY}=true; path=/; max-age=86400; SameSite=Lax`;
 }
 
 export function clearStoredUser(): void {
@@ -67,4 +75,6 @@ export function clearStoredUser(): void {
     return;
   }
   window.localStorage.removeItem(AUTH_USER_KEY);
+  document.cookie = `${AUTH_USER_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; SameSite=Lax`;
 }
+

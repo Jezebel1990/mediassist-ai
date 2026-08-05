@@ -46,25 +46,26 @@ O projeto foi desenvolvido como parte do **Challenge Alura Agentes**, demonstran
 mediassist-ai/
 ├── apps/
 │   ├── web/                         # Frontend Next.js 15 (App Router)
-│   │   ├── app/                     # Rotas: /login, /register, /dashboard, /dashboard/knowledge, /dashboard/chat
-│   │   ├── components/              # Componentes React (auth, dashboard, documents, chat, ui)
-│   │   ├── hooks/                   # Custom Hooks (useAuth, useChat, etc.)
-│   │   ├── lib/                     # Utilitários e configurações de cliente
+│   │   ├── app/                     # Rotas: /, /login, /register, /dashboard, /dashboard/chat, /dashboard/knowledge
+│   │   ├── components/              # Componentes React (auth, brand, chat, dashboard, documents, ui)
+│   │   ├── hooks/                   # Custom Hooks
+│   │   ├── lib/                     # Utilitários e armazenamento de autenticação
 │   │   ├── services/                # Camada de integração com as APIs REST
 │   │   ├── styles/                  # Estilos globais e Tailwind CSS
 │   │   ├── types/                   # Definições de tipos TypeScript
+│   │   ├── middleware.ts            # Middleware de proteção de rotas privadas
 │   │   └── public/                  # Assets estáticos, capturas de tela e demo-documents/
 │   │       └── demo-documents/      # Documentos de demonstração (PDF, JSON, CSV, HTML)
 │   │
 │   └── api/                         # Backend FastAPI (Python 3.12+)
 │       ├── app/
-│       │   ├── api/                 # Endpoints HTTP (auth, documents, chat, rag, health)
+│       │   ├── api/                 # Endpoints HTTP (auth, health, documents, chat, rag)
 │       │   ├── core/                # Configurações, segurança e variáveis de ambiente
-│       │   ├── database/            # Conexão e sessão SQLAlchemy (SQLite/PostgreSQL)
+│       │   ├── database/            # Conexão e sessão SQLAlchemy (SQLite)
 │       │   ├── models/              # Modelos de dados (User, Document)
 │       │   ├── modules/             # Módulos de domínio (auth, documents, rag, chat)
 │       │   ├── repositories/        # Camada de acesso ao banco de dados
-│       │   ├── schemas/             # Schemas Pydantic para validação das requisições
+│       │   ├── schemas/             # Schemas Pydantic para validação de requisições
 │       │   └── services/            # Serviços de integração (LLM, Embeddings, FAISS)
 │       ├── storage/                 # Armazenamento de arquivos e índice FAISS persistido
 │       ├── requirements.txt         # Dependências Python
@@ -95,67 +96,94 @@ mediassist-ai/
 
 ---
 
+# Rotas da aplicação
+
+### Rotas públicas
+
+- `/` — Redireciona automaticamente para a página de login.
+- `/login` — Página de autenticação de colaboradores.
+- `/register` — Página de cadastro de novos usuários.
+
+### Rotas protegidas
+
+- `/dashboard` — Painel principal com métricas gerais e visão do sistema.
+- `/dashboard/chat` — Interface do Assistente Inteligente para consulta em linguagem natural.
+- `/dashboard/knowledge` — Gerenciamento da Base de Conhecimento (upload, processamento e exclusão de documentos).
+
+---
+
+# Autenticação
+
+A aplicação possui controle de acesso com proteção de rotas (Route Guard):
+
+- **Páginas públicas**: Podem ser acessadas livremente sem necessidade de login (`/`, `/login`, `/register`).
+- **Páginas privadas**: Exigem autenticação ativa para visualização (`/dashboard`, `/dashboard/chat`, `/dashboard/knowledge`).
+- **Redirecionamento automático**: Usuários não autenticados que tentarem acessar páginas privadas são redirecionados automaticamente para `/login`.
+- **Proteção pós-logout**: Após encerrar a sessão (logout), o usuário não consegue acessar novamente páginas protegidas utilizando o botão "Voltar" do navegador ou digitando a URL diretamente.
+
+---
+
+# Endpoints principais da API
+
+### Health
+
+- `GET /health` — Verifica a disponibilidade e o status de funcionamento da API.
+
+### Auth
+
+- `POST /api/auth/register` — Cadastra um novo usuário no sistema.
+- `POST /api/auth/login` — Autentica o usuário e retorna os dados do perfil.
+
+### Documents
+
+- `POST /api/documents/upload` — Realiza o envio (upload) de um ou mais documentos.
+- `POST /api/documents/process` — Processa documentos pendentes (extração de texto, fragmentação e vetorização).
+- `POST /api/documents/reindex` — Recria o índice vetorial com todos os documentos processados.
+- `GET /api/documents` — Lista todos os documentos cadastrados na Base de Conhecimento.
+- `GET /api/documents/status` — Retorna estatísticas de documentos, total de fragmentos de texto, condição operacional e data da última sincronização.
+- `PUT /api/documents/{document_id}` — Atualiza o nome de um documento cadastrado.
+- `DELETE /api/documents/{document_id}` — Remove um documento, seu arquivo e atualiza o índice vetorial.
+
+### Chat
+
+- `POST /api/chat` — Endpoint principal do Assistente Inteligente (RAG + OpenRouter) com resposta e fontes deduplicadas.
+
+### RAG
+
+- `POST /api/rag/query` — Endpoint de consulta semântica direta (utilizado para testes e integrações de busca RAG).
+
+---
+
 # Funcionalidades Implementadas
 
 ## 1. Autenticação e Gestão de Acesso
-- Registration (Cadastro de novos colaboradores).
-- Login com suporte a credenciais seguras.
-- Logout e controle de sessão autenticada.
+- Cadastro de novos colaboradores.
+- Autenticação de usuários com suporte a credenciais seguras.
+- Encerramento de sessão (Logout) com bloqueio imediato de rotas protegidas.
 - Topbar e Sidebar personalizadas com nome, e-mail e avatar do usuário logado.
 
 ## 2. Dashboard Informativo
 - **Documentos Indexados**: Total de arquivos disponíveis para consulta.
-- **Fragmentos de texto**: Total de trechos (chunks) extraídos e vetorizados na Base de Conhecimento.
+- **Fragmentos de texto**: Total de trechos extraídos e vetorizados na Base de Conhecimento.
 - **Condição operacional**: Status da sincronização e integridade do índice vetorial (`Operacional`, `Pendente`, `Vazio`, `Atenção`).
 - **Última Atualização**: Data e hora da última sincronização no fuso horário `America/Sao_Paulo`.
-- **Filtro por formato**: Filtro dinâmico para visualização rápida por tipo de arquivo (PDF, JSON, CSV, HTML, TXT, etc.).
+- **Filtro por formato**: Filtro dinâmico para visualização rápida por tipo de arquivo.
 
 ## 3. Base de Conhecimento (Gestão de Documentos)
-- **Upload de Documentos**: Suporte a envio de múltiplos arquivos simultaneamente.
-- **Processamento e Indexação**: Botão **Processar** para extração de texto, geração de fragmentos e vetorização.
-- **Atualização da Base**: Botão **Atualizar** para sincronizar e recriar o índice FAISS quando necessário.
-- **Renomeação**: Edição simples do nome do documento diretamente na interface.
-- **Exclusão de Documentos**: Remoção com atualização automática do índice FAISS e exclusão do armazenamento.
-- **Badges e Feedback**: Indicadores visuais de formato, status (`Indexado`, `Processado`, `Pendente`, `Erro`) e toasts de confirmação.
+- **Upload de Documentos**: Suporte ao envio de múltiplos arquivos simultaneamente.
+- **Processamento e Indexação**: Botão **Processar** para extração de texto, geração de fragmentos de texto e vetorização.
+- **Atualização da Base**: Botão **Atualizar** para sincronizar e recriar o índice vetorial quando necessário.
+- **Renomeação**: Edição do nome do documento diretamente na interface.
+- **Exclusão de Documentos**: Remoção com atualização automática da Base de Conhecimento.
+- **Badges e Feedback**: Indicadores visuais de formato, status (`Indexado`, `Processado`, `Pendente`, `Erro`) e notificações toast.
+- **Formatos suportados**: Suporte completo a arquivos nos formatos `.pdf`, `.csv`, `.docx`, `.xlsx`, `.pptx`, `.json`, `.html` (`.htm`), `.md` (`.markdown`).
 
 ## 4. Assistente Inteligente (Chat RAG Conversacional)
-- Conversa fluida em linguagem natural.
-- Recuperação de contexto semântico utilizando LangChain + FAISS.
-- Citação de fontes com indicação precisa de documentos e páginas consultadas.
-- **Tratamento gracioso**: Respostas amigáveis quando o assunto não estiver presente na Base de Conhecimento (sem alucinações).
-- **Indicadores interativos**: Animação do avatar do assistente durante o processamento e resposta em tempo real.
-
----
-
-# Fluxos da Aplicação
-
-```text
-                            ┌───────────────┐
-                            │   Cadastro    │
-                            └───────┬───────┘
-                                    │
-                                    ▼
-                            ┌───────────────┐
-                            │     Login     │
-                            └───────┬───────┘
-                                    │
-                                    ▼
-                            ┌───────────────┐
-                            │   Dashboard   │
-                            └───────┬───────┘
-                                    │
-           ┌────────────────────────┴────────────────────────┐
-           ▼                                                 ▼
-┌──────────────────────┐                          ┌────────────────────┐
-│ Base de Conhecimento │                          │Assistente (Chat RAG)│
-└──────────┬───────────┘                          └──────────┬─────────┘
-           │                                                 │
-           ├── Upload de Arquivos                            ├── Pergunta do Usuário
-           ├── Processar (Geração de Fragmentos)             ├── Busca Vetorial no FAISS
-           ├── Atualizar (Recriar Índice)                    ├── Contexto + Prompt RAG
-           ├── Renomear Documento                            ├── Requisição OpenRouter
-           └── Excluir Documento                             └── Resposta com Fontes
-```
+- Interface conversacional fluida em linguagem natural.
+- Recuperação de contexto semântico utilizando LangChain e busca vetorial.
+- Exibição dinâmica de fontes efetivamente utilizadas com indicação de documentos e páginas consultadas.
+- **Tratamento gracioso**: Respostas amigáveis quando o assunto não estiver presente na Base de Conhecimento.
+- **Indicadores interativos**: Animações de estado do assistente e resposta em tempo real.
 
 ---
 
@@ -300,7 +328,7 @@ A aplicação foi projetada para garantir estabilidade e alta usabilidade:
 ![Página de Login](apps/web/public/login-page.png)
 ![Página de Cadastro](apps/web/public/register-page.png)
 
-### 2. Base de Conhecimento (Gestão de Documentos e Fragmentos)
+### 2. Base de Conhecimento (Gestão de Documentos)
 ![Base de Conhecimento](apps/web/public/knowledge_base.png)
 
 ### 3. Assistente Inteligente (Chat RAG e Fontes Consultadas)
