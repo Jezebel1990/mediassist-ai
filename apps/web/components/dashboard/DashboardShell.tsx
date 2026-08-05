@@ -9,8 +9,8 @@ type DashboardShellProps = {
 
 export function DashboardShell({ children }: DashboardShellProps) {
   return (
-    <div className="flex min-h-screen bg-background">
-      <div className="hidden md:sticky md:top-0 md:flex md:h-screen md:shrink-0">
+    <div className="flex min-h-dvh bg-background">
+      <div className="hidden md:sticky md:top-0 md:flex md:h-dvh md:shrink-0">
         <div className="hidden lg:block">
           <AppSidebar />
         </div>
@@ -19,12 +19,14 @@ export function DashboardShell({ children }: DashboardShellProps) {
         </div>
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <AppTopbar />
 
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        <main className="flex min-h-0 flex-1 flex-col px-4 py-6 sm:px-6 lg:px-8">
+          {children}
+        </main>
 
-        <footer className="border-t border-border/60 px-4 py-4 sm:px-6 lg:px-8">
+        <footer className="shrink-0 border-t border-border/60 px-4 py-4 sm:px-6 lg:px-8">
           <p className="text-center text-xs text-muted-foreground sm:text-left">
             MediAssist AI — Consulta inteligente a documentos internos da
             clínica

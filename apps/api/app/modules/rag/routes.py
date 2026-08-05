@@ -1,5 +1,6 @@
-"""RAG HTTP endpoints — consumed later by the Chat screen."""
+import logging
 
+# pyrefly: ignore [missing-import]
 from fastapi import APIRouter, HTTPException, status
 
 from app.modules.rag.schemas import RAGQueryRequest, RAGQueryResponse
@@ -9,6 +10,8 @@ from app.modules.rag.services.rag_service import (
     RAGServiceError,
 )
 from app.services.llm_service import LLMServiceError
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/rag", tags=["rag"])
 
@@ -32,19 +35,28 @@ def query_rag(payload: RAGQueryRequest) -> RAGQueryResponse:
             model_name=payload.model_name,
         )
     except RAGIndexNotReadyError as exc:
+        logger.warning("Tentativa de consulta RAG sem índice FAISS: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=str(exc),
+            detail="Base de Conhecimento ainda não possui um índice ativo.",
         ) from exc
     except LLMServiceError as exc:
+        logger.exception("Falha no serviço LLM durante consulta RAG: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(exc),
+            detail="Serviço de IA indisponível no momento. Tente novamente em alguns instantes.",
         ) from exc
     except RAGServiceError as exc:
+        logger.warning("Falha no serviço RAG: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
+            detail="Não foi possível concluir a busca semântica.",
+        ) from exc
+    except Exception as exc:
+        logger.exception("Erro inesperado na consulta RAG: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Ocorreu um erro ao processar sua solicitação.",
         ) from exc
 
     return RAGQueryResponse(

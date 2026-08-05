@@ -9,7 +9,7 @@ Backend FastAPI do monorepo MediAssist AI.
 - Uvicorn
 - Pydantic Settings
 - SQLAlchemy
-- LangChain + FAISS (infraestrutura de Base de Conhecimento)
+- LangChain + FAISS + OpenRouter (RAG / Assistente Inteligente)
 
 ## Estrutura
 
@@ -21,10 +21,11 @@ apps/api
 │   ├── database/            # Sessão e base SQLAlchemy
 │   ├── models/              # Entidades de persistência
 │   ├── modules/
-│   │   └── documents/       # Upload, loaders, chunks e FAISS
-│   ├── repositories/
-│   ├── schemas/
-│   ├── services/
+│   │   ├── auth/            # Cadastro e login
+│   │   ├── chat/            # POST /api/chat (facade conversacional)
+│   │   ├── documents/       # Upload, loaders, fragmentos e FAISS
+│   │   └── rag/             # Retriever e geração
+│   ├── services/            # LLM / OpenRouter
 │   └── main.py
 ├── storage/
 │   ├── documents/           # Arquivos enviados
@@ -70,6 +71,24 @@ A API sobe em `http://localhost:8000`.
 | POST | `/api/documents/process` | Processar e indexar (atualiza FAISS) |
 | POST | `/api/documents/reindex` | Recriar índice FAISS explicitamente |
 | GET | `/api/documents` | Listar documentos |
-| GET | `/api/documents/status` | Contadores e estado do índice |
+| GET | `/api/documents/status` | Contadores, `last_indexed_at` e estado do índice |
+| PATCH | `/api/documents/{id}` | Renomear documento |
+| DELETE | `/api/documents/{id}` | Excluir documento e atualizar índice |
+| POST | `/api/chat` | Assistente Inteligente (RAG + OpenRouter) |
+| POST | `/api/rag/query` | Consulta RAG (uso interno / testes) |
 
-Chat / LLM ainda não estão implementados.
+## Chat (`POST /api/chat`)
+
+Perguntas válidas retornam **HTTP 200** mesmo quando a Base de Conhecimento não possui contexto suficiente:
+
+```json
+{
+  "success": true,
+  "answer": "Desculpe, ainda não tenho essa informação disponível na Base de Conhecimento. Você pode adicionar novos documentos para ampliar meu conhecimento.",
+  "sources": []
+}
+```
+
+- Fontes são deduplicadas por documento; páginas consultadas são agrupadas em `pages`
+- Índice ausente ou contexto insuficiente → resposta amigável (não é erro HTTP)
+- Falhas reais (OpenRouter, exceções inesperadas) → HTTP 5xx com mensagem genérica; detalhes técnicos ficam apenas nos logs

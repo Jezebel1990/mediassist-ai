@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -63,13 +63,38 @@ class DocumentsListResponse(BaseModel):
     total: int
 
 
+class UpdateDocumentRequest(BaseModel):
+    """Rename a document. Only the base name is accepted — extension is preserved."""
+
+    name: str = Field(..., min_length=1, max_length=500)
+
+
+class DeleteDocumentResponse(BaseModel):
+    id: str
+    message: str
+
+
 class DocumentsStatusResponse(BaseModel):
+    model_config = ConfigDict(
+        json_encoders={
+            # Always emit datetimes as UTC ISO-8601 (e.g. "2026-08-04T17:30:00Z")
+            # so the front-end formatDocumentDate() receives an unambiguous timestamp.
+            datetime: lambda dt: (
+                dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                if dt.tzinfo is not None
+                else dt.replace(tzinfo=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            ),
+        }
+    )
+
     total: int
     uploaded: int
     processing: int
     processed: int
     indexed: int
     failed: int
+    total_chunks: int = 0
+    by_format: dict[str, int] = Field(default_factory=dict)
     index_exists: bool
     index_path: str
     last_indexed_at: datetime | None = None

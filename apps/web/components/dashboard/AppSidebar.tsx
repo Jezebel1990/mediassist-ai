@@ -1,7 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { Logo } from "@/components/brand";
 import { Separator } from "@/components/ui/separator";
+import { clearStoredUser } from "@/lib/auth-storage";
 import { cn } from "@/lib/utils";
 
 import {
@@ -21,6 +24,14 @@ export function AppSidebar({
   collapsed = false,
   onNavigate,
 }: AppSidebarProps) {
+  const router = useRouter();
+
+  function handleLogout() {
+    clearStoredUser();
+    onNavigate?.();
+    router.push("/login");
+  }
+
   return (
     <aside
       className={cn(
@@ -58,7 +69,7 @@ export function AppSidebar({
           label={dashboardLogoutItem.label}
           icon={dashboardLogoutItem.icon}
           collapsed={collapsed}
-          onNavigate={onNavigate}
+          onNavigate={handleLogout}
         />
       </div>
     </aside>

@@ -1,0 +1,11 @@
+ID,Setor,Responsavel,Cargo,E-mail,Telefone,Ramal,Horario_Atendimento
+1,Recepção,Ana Martins,Supervisora da Recepção,recepcao@vidaplena.com.br,(11) 4000-1000,101,"Segunda a Sexta - 07:00 às 20:00"
+2,Financeiro,Carlos Henrique,Coordenador Financeiro,financeiro@vidaplena.com.br,(11) 4000-1001,201,"Segunda a Sexta - 08:00 às 18:00"
+3,Recursos Humanos,Juliana Oliveira,Analista de RH,rh@vidaplena.com.br,(11) 4000-1002,301,"Segunda a Sexta - 08:00 às 17:00"
+4,Tecnologia da Informação,Lucas Ferreira,Analista de TI,suporte.ti@vidaplena.com.br,(11) 4000-1003,401,"Segunda a Sexta - 08:00 às 18:00"
+5,Enfermagem,Fernanda Souza,Coordenadora de Enfermagem,enfermagem@vidaplena.com.br,(11) 4000-1004,501,"Segunda a Sexta - 07:00 às 19:00"
+6,Laboratório,Roberto Lima,Supervisor de Laboratório,laboratorio@vidaplena.com.br,(11) 4000-1005,601,"Segunda a Sexta - 07:00 às 18:00"
+7,Radiologia,Patrícia Gomes,Coordenadora de Radiologia,radiologia@vidaplena.com.br,(11) 4000-1006,701,"Segunda a Sexta - 07:00 às 18:00"
+8,Ouvidoria,Marcos Almeida,Analista de Ouvidoria,ouvidoria@vidaplena.com.br,(11) 4000-1007,801,"Segunda a Sexta - 08:00 às 17:00"
+9,Diretoria,Dra. Mariana Costa,Diretora Clínica,diretoria@vidaplena.com.br,(11) 4000-1008,901,"Segunda a Sexta - 09:00 às 17:00"
+10,Convênios,Beatriz Santos,Analista de Convênios,convenios@vidaplena.com.br,(11) 4000-1009,1001,"Segunda a Sexta - 08:00 às 17:00"

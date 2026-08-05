@@ -19,7 +19,7 @@ export const dashboardNavItems: NavItem[] = [
     icon: LayoutDashboard,
   },
   {
-    label: "Chat IA",
+    label: "Assistente",
     href: "/dashboard/chat",
     icon: MessageSquare,
   },
@@ -35,37 +35,3 @@ export const dashboardLogoutItem: NavItem = {
   href: "/login",
   icon: LogOut,
 };
-
-export type DocumentStatus =
-  | "indexado"
-  | "processando"
-  | "pendente"
-  | "falhou";
-
-export type KnowledgeDocument = {
-  id: string;
-  name: string;
-  status: DocumentStatus;
-  uploadedAt: string;
-  type: string;
-  chunks: number;
-};
-
-export const mockUser = {
-  name: "Dra. Ana Silva",
-  initials: "AS",
-  email: "ana.silva@clinica.com",
-};
-
-export const ACCEPTED_DOCUMENT_TYPES = [
-  ".pdf",
-  ".csv",
-  ".docx",
-  ".xlsx",
-  ".pptx",
-  ".json",
-  ".html",
-  ".htm",
-  ".md",
-  ".markdown",
-].join(",");

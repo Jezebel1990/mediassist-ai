@@ -7,7 +7,9 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+# pyrefly: ignore [missing-import]
 from fastapi import UploadFile
+# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
 
 from app.core.settings import Settings, get_settings
@@ -16,6 +18,7 @@ from app.modules.documents.loaders import SUPPORTED_EXTENSIONS, DocumentLoaderFa
 from app.modules.documents.processor import DocumentProcessor
 from app.modules.documents.repository import DocumentRepository
 from app.modules.documents.schemas import (
+    DeleteDocumentResponse,
     DocumentResponse,
     DocumentsListResponse,
     DocumentsStatusResponse,
@@ -23,9 +26,22 @@ from app.modules.documents.schemas import (
     ProcessResponse,
     ProcessResultItem,
     ReindexResponse,
+    UpdateDocumentRequest,
     UploadResponse,
 )
 from app.modules.rag.services.vector_store import VectorStoreService
+
+
+def _ensure_utc(dt: datetime) -> datetime:
+    """Return a UTC-aware datetime regardless of whether *dt* has tzinfo.
+
+    SQLite may return timezone-naive datetimes even when the column is
+    declared as DateTime(timezone=True). This helper normalises them so
+    that max() comparisons and JSON serialisation are always unambiguous.
+    """
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
 
 
 class DocumentServiceError(Exception):
@@ -40,13 +56,23 @@ class NoDocumentsToProcessError(DocumentServiceError):
     """Raised when process/reindex has nothing to work on."""
 
 
+class InvalidDocumentNameError(DocumentServiceError):
+    """Raised when a rename payload is invalid."""
+
+
 _UNSAFE_FILENAME = re.compile(r"[^\w.\-]+", re.UNICODE)
+_UNSAFE_DISPLAY_NAME = re.compile(r"[\\/<>:\"|?*\x00-\x1f]+")
 
 
 def _sanitize_filename(filename: str) -> str:
     name = Path(filename).name
     cleaned = _UNSAFE_FILENAME.sub("_", name).strip("._")
     return cleaned or "document"
+
+
+def _sanitize_display_name(name: str) -> str:
+    cleaned = _UNSAFE_DISPLAY_NAME.sub("", name).strip(" .")
+    return cleaned
 
 
 class DocumentService:
@@ -82,6 +108,12 @@ class DocumentService:
             destination = self._settings.documents_dir / stored_name
 
             content = await file.read()
+            if len(content) == 0:
+                rejected.append(
+                    f"{original_name}: o arquivo está vazio e não pode ser processado."
+                )
+                continue
+
             destination.write_bytes(content)
 
             document = self._documents.create(
@@ -218,7 +250,7 @@ class DocumentService:
 
         if not all_chunks:
             raise NoDocumentsToProcessError(
-                "Reindexação não gerou chunks — verifique os documentos."
+                "Reindexação não gerou fragmentos — verifique os documentos."
             )
 
         self._vector_store.reindex(all_chunks)
@@ -233,7 +265,7 @@ class DocumentService:
             total_chunks=total_chunks,
             message=(
                 f"Índice FAISS recriado com {indexed_docs} documento(s) "
-                f"e {total_chunks} chunk(s)."
+                f"e {total_chunks} fragmento(s)."
             ),
         )
 
@@ -244,16 +276,89 @@ class DocumentService:
             total=len(documents),
         )
 
+    def rename(self, document_id: str, payload: UpdateDocumentRequest) -> DocumentResponse:
+        document = self._documents.get_by_id(document_id)
+        if document is None:
+            raise DocumentNotFoundError(f"Documento não encontrado: {document_id}")
+
+        raw_name = payload.name.strip()
+        if not raw_name:
+            raise InvalidDocumentNameError("O nome do documento não pode ser vazio.")
+
+        # Never allow changing the extension — strip any suffix the user typed.
+        stem = Path(raw_name).stem.strip() or raw_name
+        if stem.lower().endswith(document.extension.lower()):
+            stem = stem[: -len(document.extension)].rstrip(".")
+
+        stem = _sanitize_display_name(stem)
+        if not stem:
+            raise InvalidDocumentNameError("O nome do documento não pode ser vazio.")
+
+        new_filename = f"{stem}{document.extension}"
+        document.original_filename = new_filename
+        self._documents.save(document)
+
+        # Keep FAISS citation metadata in sync when the doc is already indexed.
+        if document.status == DocumentStatus.INDEXED and self._vector_store.index_exists():
+            try:
+                self.reindex()
+            except NoDocumentsToProcessError:
+                pass
+
+        return DocumentResponse.model_validate(document)
+
+    def delete(self, document_id: str) -> DeleteDocumentResponse:
+        document = self._documents.get_by_id(document_id)
+        if document is None:
+            raise DocumentNotFoundError(f"Documento não encontrado: {document_id}")
+
+        file_path = Path(document.file_path)
+        if file_path.exists():
+            file_path.unlink()
+
+        self._documents.delete(document)
+
+        remaining = [
+            doc
+            for doc in self._documents.list_all()
+            if Path(doc.file_path).exists()
+        ]
+
+        if remaining:
+            try:
+                self.reindex()
+            except NoDocumentsToProcessError:
+                self._vector_store.clear_index()
+        else:
+            self._vector_store.clear_index()
+
+        return DeleteDocumentResponse(
+            id=document_id,
+            message="Documento excluído com sucesso.",
+        )
+
     def get_status(self) -> DocumentsStatusResponse:
         counts = self._documents.count_by_status()
         total = sum(counts.values())
-        indexed_docs = self._documents.list_by_status(DocumentStatus.INDEXED)
-        last_indexed_at = None
-        if indexed_docs:
-            timestamps = [
-                doc.processed_at or doc.updated_at for doc in indexed_docs
-            ]
-            last_indexed_at = max(timestamps)
+        all_docs = self._documents.list_all()
+        # Track the latest knowledge-base activity (upload, rename, process,
+        # reindex, delete→reindex) — never a fixed/hardcoded date.
+        # Normalise every timestamp to UTC-aware so max() works correctly
+        # even when SQLite returns timezone-naive datetimes.
+        activity_timestamps: list[datetime] = []
+        for doc in all_docs:
+            activity_timestamps.append(_ensure_utc(doc.created_at))
+            activity_timestamps.append(_ensure_utc(doc.updated_at))
+            if doc.processed_at is not None:
+                activity_timestamps.append(_ensure_utc(doc.processed_at))
+        last_indexed_at = max(activity_timestamps) if activity_timestamps else None
+
+        by_format: dict[str, int] = {}
+        total_chunks = 0
+        for doc in all_docs:
+            total_chunks += doc.chunk_count or 0
+            key = self._format_key(doc.extension)
+            by_format[key] = by_format.get(key, 0) + 1
 
         return DocumentsStatusResponse(
             total=total,
@@ -262,8 +367,19 @@ class DocumentService:
             processed=counts[DocumentStatus.PROCESSED],
             indexed=counts[DocumentStatus.INDEXED],
             failed=counts[DocumentStatus.FAILED],
+            total_chunks=total_chunks,
+            by_format=by_format,
             index_exists=self._vector_store.index_exists(),
             index_path=str(self._vector_store.index_path),
             last_indexed_at=last_indexed_at,
             model_name=self._settings.model_name,
         )
+
+    @staticmethod
+    def _format_key(extension: str) -> str:
+        ext = extension.lower().lstrip(".")
+        if ext in {"md", "markdown"}:
+            return "markdown"
+        if ext in {"htm", "html"}:
+            return "html"
+        return ext

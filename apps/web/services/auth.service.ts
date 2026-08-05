@@ -30,6 +30,27 @@ export class AuthApiError extends Error {
   }
 }
 
+const TECHNICAL_ERROR_PATTERNS = [
+  /bad request/i,
+  /internal server error/i,
+  /fetch failed/i,
+  /network error/i,
+  /typeerror/i,
+  /cannot read/i,
+  /unexpected error/i,
+  /stack trace/i,
+  /failed to fetch/i,
+  /traceback/i,
+];
+
+function sanitizeErrorMessage(msg: string | null | undefined, fallback: string): string {
+  if (!msg || typeof msg !== "string") return fallback;
+  if (TECHNICAL_ERROR_PATTERNS.some((pattern) => pattern.test(msg))) {
+    return fallback;
+  }
+  return msg;
+}
+
 function extractErrorMessage(data: unknown, fallback: string): string {
   if (!data || typeof data !== "object") {
     return fallback;
@@ -38,18 +59,18 @@ function extractErrorMessage(data: unknown, fallback: string): string {
   const detail = (data as { detail?: unknown }).detail;
 
   if (typeof detail === "string") {
-    return detail;
+    return sanitizeErrorMessage(detail, fallback);
   }
 
   if (Array.isArray(detail)) {
     const messages = detail
       .map((item) => {
         if (item && typeof item === "object" && "msg" in item) {
-          return String((item as { msg: unknown }).msg);
+          return sanitizeErrorMessage(String((item as { msg: unknown }).msg), fallback);
         }
         return null;
       })
-      .filter((msg): msg is string => Boolean(msg));
+      .filter((msg): msg is string => Boolean(msg) && msg !== fallback);
 
     if (messages.length > 0) {
       return messages.join(", ");
@@ -64,25 +85,32 @@ async function postAuth<T>(
   body: unknown,
   fallbackError: string,
 ): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  try {
+    const response = await fetch(`${API_URL}${path}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(body),
+    });
 
-  const data: unknown = await response.json().catch(() => null);
+    const data: unknown = await response.json().catch(() => null);
 
-  if (!response.ok) {
-    throw new AuthApiError(
-      extractErrorMessage(data, fallbackError),
-      response.status,
-    );
+    if (!response.ok) {
+      throw new AuthApiError(
+        extractErrorMessage(data, fallbackError),
+        response.status,
+      );
+    }
+
+    return data as T;
+  } catch (error) {
+    if (error instanceof AuthApiError) {
+      throw error;
+    }
+    throw new AuthApiError(fallbackError, 500);
   }
-
-  return data as T;
 }
 
 /**

@@ -4,75 +4,33 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Loader2, RefreshCw, Upload } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  ACCEPTED_DOCUMENT_TYPES,
+  DocumentActions,
+  documentsErrorMessage,
+  toKnowledgeDocument,
+  type KnowledgeDocument,
+} from "@/components/documents";
 import { Button } from "@/components/ui/button";
 import {
   DocumentsApiError,
+  deleteDocument,
   getDocumentsStatus,
   listDocuments,
   processDocuments,
   reindexDocuments,
+  updateDocument,
   uploadDocuments,
-  type ApiDocumentStatus,
-  type DocumentResponse,
   type DocumentsStatusResponse,
 } from "@/services/documents.service";
 
 import { KnowledgeBaseCard } from "./KnowledgeBaseCard";
-import {
-  ACCEPTED_DOCUMENT_TYPES,
-  type DocumentStatus,
-  type KnowledgeDocument,
-} from "./constants";
 
 type BusyAction = "idle" | "upload" | "process" | "reindex" | "loading";
 
 type KnowledgeBaseSectionProps = {
   onStatusChange?: (status: DocumentsStatusResponse | null) => void;
 };
-
-function mapApiStatus(status: ApiDocumentStatus): DocumentStatus {
-  switch (status) {
-    case "indexed":
-      return "indexado";
-    case "processing":
-    case "processed":
-      return "processando";
-    case "failed":
-      return "falhou";
-    case "uploaded":
-    default:
-      return "pendente";
-  }
-}
-
-function formatDate(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) {
-    return "—";
-  }
-  return new Intl.DateTimeFormat("pt-BR").format(date);
-}
-
-function toKnowledgeDocument(doc: DocumentResponse): KnowledgeDocument {
-  return {
-    id: doc.id,
-    name: doc.original_filename,
-    status: mapApiStatus(doc.status),
-    uploadedAt: formatDate(doc.created_at),
-    type: doc.extension.replace(".", "").toUpperCase() || "FILE",
-    chunks: doc.chunk_count,
-  };
-}
-
-function errorMessage(error: unknown, fallback: string): string {
-  if (error instanceof DocumentsApiError) {
-    return error.message;
-  }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return fallback;
-}
 
 export function KnowledgeBaseSection({
   onStatusChange,
@@ -108,7 +66,9 @@ export function KnowledgeBaseSection({
         }
       } catch (error) {
         if (!cancelled) {
-          toast.error(errorMessage(error, "Falha ao carregar a base."));
+          toast.error(
+            documentsErrorMessage(error, "Falha ao carregar a base."),
+          );
           onStatusChange?.(null);
         }
       } finally {
@@ -150,15 +110,13 @@ export function KnowledgeBaseSection({
 
       const uploadedCount = result.uploaded.length;
       if (uploadedCount > 0) {
-        toast.success(
-          `${uploadedCount} arquivo(s) enviado(s). Clique em Processar para indexar.`,
-        );
+        toast.success("Documento enviado com sucesso.");
       }
       if (result.rejected.length > 0) {
         toast.error(result.rejected.join("\n"));
       }
     } catch (error) {
-      toast.error(errorMessage(error, "Falha no upload."));
+      toast.error(documentsErrorMessage(error, "Falha no upload."));
     } finally {
       setBusy("idle");
       setProgress(0);
@@ -178,7 +136,7 @@ export function KnowledgeBaseSection({
       setProgress(100);
       toast.success(result.message);
     } catch (error) {
-      toast.error(errorMessage(error, "Falha no processamento."));
+      toast.error(documentsErrorMessage(error, "Falha no processamento."));
       try {
         await refresh();
       } catch {
@@ -191,11 +149,11 @@ export function KnowledgeBaseSection({
     }
   }
 
-  async function handleReindex() {
+  async function handleUpdate() {
     try {
       setBusy("reindex");
       setProgress(15);
-      setProgressLabel("Reconstruindo índice FAISS…");
+      setProgressLabel("Atualizando Base de Conhecimento…");
       const result = await reindexDocuments();
       setProgress(85);
       setProgressLabel("Sincronizando status…");
@@ -203,7 +161,7 @@ export function KnowledgeBaseSection({
       setProgress(100);
       toast.success(result.message);
     } catch (error) {
-      toast.error(errorMessage(error, "Falha na reindexação."));
+      toast.error(documentsErrorMessage(error, "Erro ao atualizar."));
       try {
         await refresh();
       } catch {
@@ -213,6 +171,37 @@ export function KnowledgeBaseSection({
       setBusy("idle");
       setProgress(0);
       setProgressLabel("");
+    }
+  }
+
+  async function handleRename(documentId: string, name: string) {
+    try {
+      await updateDocument(documentId, name);
+      await refresh();
+      toast.success("Documento atualizado com sucesso.");
+    } catch (error) {
+      const message =
+        error instanceof DocumentsApiError
+          ? error.message
+          : "Erro ao atualizar.";
+      toast.error(message);
+      throw error;
+    }
+  }
+
+  async function handleDelete(documentId: string) {
+    try {
+      await deleteDocument(documentId);
+      toast.success("Documento excluído com sucesso.");
+    } catch {
+      toast.error("Não foi possível excluir o documento. Tente novamente.");
+      return;
+    }
+
+    try {
+      await refresh();
+    } catch {
+      /* ignore refresh error after successful deletion */
     }
   }
 
@@ -232,15 +221,16 @@ export function KnowledgeBaseSection({
 
       <KnowledgeBaseCard
         documents={documents}
+        emptyDescription="Selecione arquivos para começar a indexação."
         footer={
           <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 px-4 py-3">
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
               <p className="text-muted-foreground">
-                Status:{" "}
+                Condição operacional:{" "}
                 <span className="font-medium text-foreground">
                   {status?.index_exists
-                    ? "Índice FAISS pronto"
-                    : "Índice ainda não criado"}
+                    ? "Operacional e pronta"
+                    : "Pendente"}
                 </span>
                 {status ? (
                   <span className="text-muted-foreground">
@@ -304,17 +294,25 @@ export function KnowledgeBaseSection({
               type="button"
               variant="secondary"
               disabled={isBusy}
-              onClick={() => void handleReindex()}
+              onClick={() => void handleUpdate()}
             >
               {busy === "reindex" ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
                 <RefreshCw className="size-4" />
               )}
-              Reindexar
+              Atualizar
             </Button>
           </>
         }
+        renderActions={(document) => (
+          <DocumentActions
+            document={document}
+            disabled={isBusy}
+            onRename={handleRename}
+            onDelete={handleDelete}
+          />
+        )}
       />
     </>
   );

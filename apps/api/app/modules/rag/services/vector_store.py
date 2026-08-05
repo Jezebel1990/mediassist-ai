@@ -108,6 +108,16 @@ class VectorStoreService:
         self._store = None
         return self.create_index(documents)
 
+    def clear_index(self) -> None:
+        """Remove the persisted FAISS index from memory and disk."""
+        self._store = None
+        faiss_file = self._index_dir / f"{_INDEX_NAME}.faiss"
+        pkl_file = self._index_dir / f"{_INDEX_NAME}.pkl"
+        if faiss_file.exists():
+            faiss_file.unlink()
+        if pkl_file.exists():
+            pkl_file.unlink()
+
     def similarity_search(
         self,
         query: str,

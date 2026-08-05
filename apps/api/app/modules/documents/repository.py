@@ -70,3 +70,7 @@ class DocumentRepository:
         self._db.commit()
         self._db.refresh(document)
         return document
+
+    def delete(self, document: Document) -> None:
+        self._db.delete(document)
+        self._db.commit()

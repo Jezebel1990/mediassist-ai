@@ -1,11 +1,16 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  getStoredUser,
+  getUserInitials,
+  type AuthUser,
+} from "@/lib/auth-storage";
 
 import { MobileSidebar } from "./MobileSidebar";
-import { mockUser } from "./constants";
 
 const pageMeta: Record<string, { title: string; description: string }> = {
   "/dashboard": {
@@ -13,8 +18,8 @@ const pageMeta: Record<string, { title: string; description: string }> = {
     description: "Bem-vindo ao MediAssist AI",
   },
   "/dashboard/chat": {
-    title: "Chat IA",
-    description: "Converse com o assistente inteligente",
+    title: "Assistente Inteligente",
+    description: "Faça perguntas sobre documentos internos da clínica.",
   },
   "/dashboard/knowledge": {
     title: "Base de Conhecimento",
@@ -25,6 +30,15 @@ const pageMeta: Record<string, { title: string; description: string }> = {
 export function AppTopbar() {
   const pathname = usePathname();
   const meta = pageMeta[pathname] ?? pageMeta["/dashboard"];
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    setUser(getStoredUser());
+  }, []);
+
+  const displayName = user?.name ?? "Usuário";
+  const displayEmail = user?.email ?? "";
+  const initials = getUserInitials(displayName);
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border/60 bg-card/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-card/80 sm:px-6">
@@ -43,13 +57,15 @@ export function AppTopbar() {
 
       <div className="flex shrink-0 items-center gap-3">
         <div className="hidden text-right sm:block">
-          <p className="text-sm font-medium text-foreground">{mockUser.name}</p>
-          <p className="text-xs text-muted-foreground">{mockUser.email}</p>
+          <p className="text-sm font-medium text-foreground">{displayName}</p>
+          {displayEmail ? (
+            <p className="text-xs text-muted-foreground">{displayEmail}</p>
+          ) : null}
         </div>
 
         <Avatar size="default" className="size-9 ring-2 ring-border/60">
           <AvatarFallback className="bg-primary/10 font-semibold text-primary">
-            {mockUser.initials}
+            {initials}
           </AvatarFallback>
         </Avatar>
       </div>

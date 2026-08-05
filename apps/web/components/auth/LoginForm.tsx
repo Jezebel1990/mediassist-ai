@@ -11,6 +11,7 @@ import {
   PasswordInput,
   SubmitButton,
 } from "@/components/auth";
+import { setStoredUser } from "@/lib/auth-storage";
 import {
   loginSchema,
   type LoginFormValues,
@@ -37,11 +38,12 @@ export function LoginForm() {
     setIsSubmitting(true);
 
     try {
-      await loginUser({
+      const user = await loginUser({
         email: data.email,
         password: data.password,
       });
 
+      setStoredUser(user);
       toast.success("Login realizado com sucesso.");
       router.push("/dashboard");
     } catch (error) {

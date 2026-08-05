@@ -1,0 +1,99 @@
+{
+  "clinic": {
+    "name": "Clínica Vida Plena",
+    "version": "1.0",
+    "last_updated": "2026-08-03"
+  },
+  "faq": [
+    {
+      "id": 1,
+      "category": "Agendamento",
+      "question": "Como agendar uma consulta?",
+      "answer": "As consultas podem ser agendadas presencialmente, por telefone, WhatsApp ou pelo Portal do Paciente. Para o agendamento é necessário informar nome completo, CPF, convênio (quando houver), especialidade desejada e telefone para contato."
+    },
+    {
+      "id": 2,
+      "category": "Agendamento",
+      "question": "Posso remarcar minha consulta?",
+      "answer": "Sim. O reagendamento pode ser realizado sem custos desde que solicitado com pelo menos 24 horas de antecedência."
+    },
+    {
+      "id": 3,
+      "category": "Cancelamento",
+      "question": "Como cancelar uma consulta?",
+      "answer": "O cancelamento pode ser realizado pelo telefone, WhatsApp ou presencialmente. Solicitações realizadas com menos de 24 horas poderão ser analisadas pela administração."
+    },
+    {
+      "id": 4,
+      "category": "Convênios",
+      "question": "Quais convênios são aceitos?",
+      "answer": "A clínica atende Unimed, Bradesco Saúde, SulAmérica, Amil, NotreDame Intermédica, Porto Saúde e também pacientes particulares."
+    },
+    {
+      "id": 5,
+      "category": "Documentação",
+      "question": "Quais documentos devo apresentar no atendimento?",
+      "answer": "É necessário apresentar documento oficial com foto, CPF, cartão do convênio (quando aplicável) e pedido médico quando solicitado."
+    },
+    {
+      "id": 6,
+      "category": "Horário",
+      "question": "Qual é o horário de funcionamento da clínica?",
+      "answer": "Segunda a sexta-feira das 07h00 às 20h00. Sábado das 08h00 às 13h00. Domingos e feriados a clínica permanece fechada."
+    },
+    {
+      "id": 7,
+      "category": "Telemedicina",
+      "question": "A clínica realiza teleconsultas?",
+      "answer": "Sim. Algumas especialidades oferecem atendimento por telemedicina. A disponibilidade pode ser consultada durante o agendamento."
+    },
+    {
+      "id": 8,
+      "category": "Especialidades",
+      "question": "Quais especialidades médicas estão disponíveis?",
+      "answer": "A clínica oferece Clínica Geral, Cardiologia, Dermatologia, Endocrinologia, Gastroenterologia, Ginecologia, Neurologia, Oftalmologia, Ortopedia, Pediatria, Psiquiatria e Urologia."
+    },
+    {
+      "id": 9,
+      "category": "Exames",
+      "question": "Qual o preparo para colonoscopia?",
+      "answer": "É necessário realizar jejum de 8 horas, seguir o preparo intestinal conforme orientação médica e comparecer acompanhado."
+    },
+    {
+      "id": 10,
+      "category": "Exames",
+      "question": "Qual o preparo para exames laboratoriais?",
+      "answer": "Para exames de sangue recomenda-se jejum de 8 horas. Água é permitida e deve-se evitar bebidas alcoólicas nas últimas 24 horas."
+    },
+    {
+      "id": 11,
+      "category": "Atendimento",
+      "question": "Quem possui atendimento prioritário?",
+      "answer": "Idosos, gestantes, pessoas com deficiência, pessoas com mobilidade reduzida e pessoas com crianças de colo possuem atendimento prioritário conforme a legislação vigente."
+    },
+    {
+      "id": 12,
+      "category": "Resultados",
+      "question": "Como consultar os resultados dos exames?",
+      "answer": "Os resultados podem ser consultados pelo Portal do Paciente, presencialmente ou conforme disponibilidade do laboratório parceiro."
+    },
+    {
+      "id": 13,
+      "category": "Acompanhante",
+      "question": "Posso levar acompanhante?",
+      "answer": "Sim. Menores de idade devem estar acompanhados por um responsável. Alguns exames também exigem acompanhante."
+    },
+    {
+      "id": 14,
+      "category": "Contato",
+      "question": "Como entrar em contato com a clínica?",
+      "answer": "Telefone: (11) 4000-1000. WhatsApp: (11) 99999-0000. E-mail: contato@vidaplena.com.br."
+    },
+    {
+      "id": 15,
+      "category": "LGPD",
+      "question": "Como a clínica trata os dados dos pacientes?",
+      "answer": "Os dados são tratados conforme a Lei Geral de Proteção de Dados (LGPD) e utilizados exclusivamente para atendimento médico e administrativo. Somente colaboradores autorizados possuem acesso às informações necessárias para execução de suas atividades."
+    }
+  ]
+}
