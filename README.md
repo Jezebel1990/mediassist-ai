@@ -8,6 +8,15 @@ O projeto foi desenvolvido como parte do **Challenge Alura Agentes**, demonstran
 
 ---
 
+# Demonstração
+
+Aplicação executando em ambiente de produção:
+
+![MediAssist AI Demo](apps/web/public/demo-mediassist.gif)
+
+
+---
+
 # Arquitetura e Fluxo RAG
 
 ```text
@@ -39,6 +48,73 @@ O projeto foi desenvolvido como parte do **Challenge Alura Agentes**, demonstran
 ```
 
 ---
+
+
+# Arquitetura de Deploy
+
+A aplicação foi publicada em ambiente cloud utilizando uma arquitetura separada entre frontend, backend e serviços auxiliares.
+
+```text
+
+                    Usuário
+                       │
+                       ▼
+        ┌─────────────────────────┐
+        │ Cloudflare Tunnel       │
+        │ HTTPS Público           │
+        └────────────┬────────────┘
+                     │
+                     ▼
+        ┌─────────────────────────┐
+        │ Oracle Cloud VM         │
+        │ Ubuntu Linux            │
+        └────────────┬────────────┘
+                     │
+        ┌────────────┴────────────┐
+        ▼                         ▼
+┌───────────────┐        ┌────────────────┐
+│ Next.js 15    │        │ FastAPI        │
+│ PM2           │        │ PM2            │
+│ Frontend      │        │ Backend        │
+└───────────────┘        └───────┬────────┘
+                                 │
+                                 ▼
+                        ┌─────────────────┐
+                        │ OpenRouter API  │
+                        │ LLM Generation  │
+                        └─────────────────┘
+
+
+
+```
+
+### Infraestrutura utilizada
+- **Cloud Provider:** Oracle Cloud Infrastructure (OCI)
+- **Sistema Operacional:** Ubuntu Server
+- **Process Manager:** PM2
+- **Proxy/Túnel HTTPS:** Cloudflare Tunnel
+- **Backend Runtime:** FastAPI + Uvicorn
+- **Frontend Runtime:** Next.js Production Build
+- **Versionamento:** Git + GitHub
+
+
+## Ambiente Cloud
+
+A aplicação foi hospedada em uma máquina virtual da Oracle Cloud Infrastructure.
+
+Configuração utilizada:
+
+- Instância Ubuntu Linux
+- Execução dos serviços via PM2
+- Gerenciamento de processos do frontend e backend
+- Comunicação segura através do Cloudflare Tunnel
+
+![Oracle Cloud VM](apps/web/public/oracle-vm.png)
+
+
+---
+
+
 
 # Estrutura do Monorepo
 
@@ -82,17 +158,19 @@ mediassist-ai/
 
 # Tecnologias Utilizadas
 
-| Camada | Tecnologias |
-| :--- | :--- |
-| **Monorepo** | pnpm Workspaces |
-| **Frontend** | Next.js 15 (App Router), React 19, TypeScript |
-| **Interface & UI** | Tailwind CSS v4, shadcn/ui, Lucide React |
-| **Notificações** | Sonner (Toasts interativos) |
-| **Backend** | FastAPI, Python 3.12+, SQLAlchemy, Pydantic v2 |
-| **Orquestração RAG** | LangChain, LangChain Community, LangChain Text Splitters |
-| **Modelos de Linguagem** | OpenRouter (Modelos gratuitos e corporativos) |
-| **Busca Vetorial** | FAISS (`faiss-cpu`) |
+| Camada                          | Tecnologias                                                                          |
+| :--------------------------------| :-------------------------------------------------------------------------------------|
+| **Monorepo**                    | pnpm Workspaces                                                                      |
+| **Frontend**                    | Next.js 15 (App Router), React 19, TypeScript                                        |
+| **Interface & UI**              | Tailwind CSS v4, shadcn/ui, Lucide React                                             |
+| **Notificações**                | Sonner (Toasts interativos)                                                          |
+| **Backend**                     | FastAPI, Python 3.12+, SQLAlchemy, Pydantic v2                                       |
+| **Orquestração RAG**            | LangChain, LangChain Community, LangChain Text Splitters                             |
+| **Modelos de Linguagem**        | OpenRouter (Modelos gratuitos e corporativos)                                        |
+| **Busca Vetorial**              | FAISS (`faiss-cpu`)                                                                  |
 | **Processadores de Documentos** | `pypdf`, `pandas`, `openpyxl`, `docx2txt`, `python-pptx`, `unstructured`, `markdown` |
+| **Cloud / Deploy**              | Oracle Cloud Infrastructure (OCI), Ubuntu Server, PM2, Cloudflare Tunnel             |
+| **Controle de Versão**          | Git, GitHub                                                                          |
 
 ---
 
@@ -290,6 +368,18 @@ pnpm dev:api
 pnpm dev:web
 ```
 - Aplicação Web disponível em: `http://localhost:3000`
+
+---
+
+# Execução em Produção
+
+O projeto também está preparado para execução em ambiente produtivo.
+
+Serviços gerenciados:
+
+```bash
+pm2 list
+```
 
 ---
 
